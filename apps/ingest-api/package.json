@@ -1,0 +1,23 @@
+{
+  "name": "ingest-api",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npm run build -w @rift/observability-types && tsx watch src/index.ts",
+    "build": "npm run build -w @rift/observability-types && tsc -b",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@repo/db": "*",
+    "@rift/observability-types": "*",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "*",
+    "@types/express": "^5.0.6",
+    "tsx": "^4.19.4",
+    "typescript": "5.9.2"
+  }
+}

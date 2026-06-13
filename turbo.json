@@ -4,7 +4,12 @@
   "globalEnv": [
     "DATABASE_URL",
     "BETTER_AUTH_SECRET",
-    "BETTER_AUTH_URL"
+    "BETTER_AUTH_URL",
+    "API_PORT",
+    "INGEST_PORT",
+    "REMEDIATION_PORT",
+    "NEXT_PUBLIC_API_URL",
+    "NEXT_PUBLIC_PROJECT_SLUG"
   ],
   "tasks": {
     "build": {
@@ -17,7 +22,8 @@
       ],
       "outputs": [
         ".next/**",
-        "!.next/cache/**"
+        "!.next/cache/**",
+        "dist/**"
       ]
     },
     "lint": {

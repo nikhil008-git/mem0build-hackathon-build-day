@@ -66,3 +66,83 @@ model Verification {
 
   @@map("verification")
 }
+
+// --- Rift Observability ---
+
+model Project {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  apiKeys   ApiKey[]
+  runs      Run[]
+
+  @@map("project")
+}
+
+model ApiKey {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  name      String   @default("default")
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@map("api_key")
+}
+
+model Run {
+  id          String         @id
+  projectId   String
+  project     Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  status      String         @default("running")
+  agentName   String?
+  framework   String?
+  model       String?
+  environment String?
+  input       Json?
+  output      Json?
+  errorType   String?
+  errorMsg    String?
+  durationMs  Int?
+  costUsd     Float?
+  startedAt   DateTime
+  endedAt     DateTime?
+  createdAt   DateTime       @default(now())
+  events      AgentEvent[]
+  remediation Remediation?
+
+  @@index([projectId, startedAt(sort: Desc)])
+  @@index([status])
+  @@map("run")
+}
+
+model AgentEvent {
+  id        String   @id
+  runId     String
+  run       Run      @relation(fields: [runId], references: [id], onDelete: Cascade)
+  type      String
+  spanId    String?
+  timestamp DateTime
+  data      Json
+  createdAt DateTime @default(now())
+
+  @@index([runId, timestamp])
+  @@map("agent_event")
+}
+
+model Remediation {
+  id         String   @id @default(cuid())
+  runId      String   @unique
+  run        Run      @relation(fields: [runId], references: [id], onDelete: Cascade)
+  status     String   @default("pending")
+  analysis   String?
+  patch      String?
+  prUrl      String?
+  prNumber   Int?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("remediation")
+}

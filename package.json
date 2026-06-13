@@ -10,7 +10,8 @@
     "check-types": "turbo run check-types",
     "db:generate": "npm run db:generate -w @repo/db",
     "db:migrate": "npm run db:migrate -w @repo/db",
-    "db:deploy": "npm run db:deploy -w @repo/db"
+    "db:deploy": "npm run db:deploy -w @repo/db",
+    "db:seed": "npx tsx packages/database/prisma/seed.ts"
   },
   "devDependencies": {
     "prettier": "^3.7.4",

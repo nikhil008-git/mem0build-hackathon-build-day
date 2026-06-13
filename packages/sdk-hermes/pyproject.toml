@@ -1,0 +1,7 @@
+name = "rift-hermes-plugin"
+version = "0.0.1"
+description = "Rift observability plugin for Nous Research Hermes Agent"
+requires = ["requests"]
+
+[project.entry-points."hermes_agent.plugins"]
+rift = "rift_plugin:register"
