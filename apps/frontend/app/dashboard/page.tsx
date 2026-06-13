@@ -1,117 +1,126 @@
 import Link from "next/link";
 import { fetchStats, fetchRuns } from "@/lib/rift-api";
+import { avgDuration, p95Duration, successRate } from "@/lib/dashboard-analytics";
+import { MetricCard } from "@/components/ui/card";
+import { DashboardTopBar, DateRangeTabs } from "@/components/layout/dashboard-sidebar";
+import { SectionHeader, PageShell } from "@/components/layout/page-chrome";
+import { ActivityChart } from "@/components/dashboard/activity-chart";
+import {
+  AgentBreakdown,
+  FailureSignals,
+  RecentRunsFeed,
+} from "@/components/dashboard/overview-sections";
 
-function StatCard({
-  label,
-  value,
-  sub,
-}: {
-  label: string;
-  value: string | number;
-  sub?: string;
-}) {
+export default async function DashboardPage() {
+  const [{ stats, project }, { runs }] = await Promise.all([fetchStats(), fetchRuns()]);
+  const avgMs = avgDuration(runs);
+  const p95Ms = p95Duration(runs);
+  const rate = successRate(runs);
+
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-5">
-      <p className="text-sm text-white/50">{label}</p>
-      <p className="mt-1 text-3xl font-semibold text-white">{value}</p>
-      {sub ? <p className="mt-1 text-xs text-white/40">{sub}</p> : null}
-    </div>
+    <>
+      <DashboardTopBar
+        eyebrow={project.name}
+        title="Overview"
+        subtitle="Find out why agents fail, what they cost, and how to fix them."
+      >
+        <DateRangeTabs />
+      </DashboardTopBar>
+
+      <PageShell>
+        <div className="mb-10 grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <MetricCard label="Agent runs" value={stats.runs} sub="Total invocations" trend={`${rate}% success`} accent="orange" />
+          <MetricCard label="Tool calls" value={stats.toolCalls} sub="Across all runs" />
+          <MetricCard label="Failures" value={stats.failures} sub={stats.failures > 0 ? "Investigate" : "All clear"} accent="purple" />
+          <MetricCard label="Total cost" value={`$${stats.costUsd.toFixed(4)}`} sub="USD this period" />
+        </div>
+
+        <div className="mb-10 grid gap-4 md:grid-cols-3">
+          <MetricCard label="Avg latency" value={avgMs != null ? `${avgMs}ms` : "—"} sub="Mean duration" />
+          <MetricCard label="P95 latency" value={p95Ms != null ? `${p95Ms}ms` : "—"} sub="95th percentile" />
+          <MetricCard
+            label="Active agents"
+            value={new Set(runs.map((r) => r.agentName).filter(Boolean)).size || 0}
+            sub="Unique agents"
+          />
+        </div>
+
+        <div className="mb-10 grid gap-10 lg:grid-cols-2">
+          <section>
+            <SectionHeader
+              title="Failure signals"
+              subtitle="Grouped by error type"
+              action={{ label: "View all", href: "/dashboard/failures" }}
+            />
+            <FailureSignals runs={runs} />
+          </section>
+          <section>
+            <SectionHeader title="Run activity" subtitle="Last 7 days" />
+            <div className="panel-elevated p-6">
+              <ActivityChart runs={runs} />
+            </div>
+          </section>
+        </div>
+
+        <div className="mb-10 grid gap-10 lg:grid-cols-3">
+          <section className="lg:col-span-2">
+            <SectionHeader
+              title="Recent runs"
+              subtitle="Latest invocations"
+              action={{ label: "All runs", href: "/dashboard/runs" }}
+            />
+            <RecentRunsFeed runs={runs} />
+          </section>
+          <section>
+            <SectionHeader title="Agents" subtitle="Performance by name" />
+            <AgentBreakdown runs={runs} />
+          </section>
+        </div>
+
+        <SectionHeader title="Integrations" subtitle="Connected services" />
+        <div className="grid gap-4 md:grid-cols-3">
+          <IntegrationCard title="SDK" status="Live" desc="@rift/sdk-core on :8081" accent="orange" />
+          <IntegrationCard title="Hermes" status="Ready" desc="Python plugin + remediation worker" accent="purple" />
+          <IntegrationCard
+            title="GitHub"
+            status="Configure"
+            desc="Auto-remediation PRs"
+            action={{ label: "Settings", href: "/dashboard/settings" }}
+          />
+        </div>
+      </PageShell>
+    </>
   );
 }
 
-function statusColor(status: string) {
-  if (status === "success") return "text-emerald-400";
-  if (status === "error") return "text-red-400";
-  if (status === "running") return "text-amber-400";
-  return "text-white/60";
-}
-
-export default async function DashboardPage() {
-  const [{ stats, project }, { runs }] = await Promise.all([
-    fetchStats(),
-    fetchRuns(),
-  ]);
+function IntegrationCard({
+  title,
+  status,
+  desc,
+  action,
+  accent,
+}: {
+  title: string;
+  status: string;
+  desc: string;
+  action?: { label: string; href: string };
+  accent?: "orange" | "purple";
+}) {
+  const bar = accent === "orange" ? "bg-[var(--accent-orange)]" : accent === "purple" ? "bg-[var(--accent-purple)]" : "bg-black";
 
   return (
-    <main className="min-h-screen bg-[#0a0a0f] text-white">
-      <div className="mx-auto max-w-6xl px-6 py-10">
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <p className="text-sm text-violet-400">Rift Observability</p>
-            <h1 className="text-3xl font-semibold">{project.name}</h1>
-          </div>
-          <Link
-            href="/dashboard/runs"
-            className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium hover:bg-violet-500"
-          >
-            All Runs
-          </Link>
-        </div>
-
-        <div className="mb-10 grid grid-cols-2 gap-4 md:grid-cols-4">
-          <StatCard label="Agent Runs" value={stats.runs} />
-          <StatCard label="Tool Calls" value={stats.toolCalls} />
-          <StatCard
-            label="Failures"
-            value={stats.failures}
-            sub={stats.failures > 0 ? "needs attention" : "all clear"}
-          />
-          <StatCard
-            label="Cost"
-            value={`$${stats.costUsd.toFixed(4)}`}
-          />
-        </div>
-
-        <section>
-          <h2 className="mb-4 text-lg font-medium">Recent Runs</h2>
-          <div className="overflow-hidden rounded-xl border border-white/10">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-white/5 text-white/50">
-                <tr>
-                  <th className="px-4 py-3">Run</th>
-                  <th className="px-4 py-3">Agent</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Duration</th>
-                  <th className="px-4 py-3">Events</th>
-                </tr>
-              </thead>
-              <tbody>
-                {runs.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-white/40">
-                      No runs yet. Send events via SDK or Hermes plugin.
-                    </td>
-                  </tr>
-                ) : (
-                  runs.slice(0, 10).map((run) => (
-                    <tr
-                      key={run.id}
-                      className="border-t border-white/5 hover:bg-white/5"
-                    >
-                      <td className="px-4 py-3">
-                        <Link
-                          href={`/dashboard/runs/${run.id}`}
-                          className="font-mono text-violet-300 hover:underline"
-                        >
-                          {run.id}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3">{run.agentName ?? "—"}</td>
-                      <td className={`px-4 py-3 ${statusColor(run.status)}`}>
-                        {run.status}
-                      </td>
-                      <td className="px-4 py-3">
-                        {run.durationMs != null ? `${run.durationMs}ms` : "—"}
-                      </td>
-                      <td className="px-4 py-3">{run._count.events}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
+    <div className="panel-elevated relative overflow-hidden p-6">
+      <div className={`absolute inset-x-0 top-0 h-1 ${bar}`} />
+      <div className="flex items-center justify-between">
+        <p className="label-caps">{title}</p>
+        <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted-light)]">{status}</span>
       </div>
-    </main>
+      <p className="mt-3 text-xs leading-relaxed text-[var(--muted)]">{desc}</p>
+      {action ? (
+        <Link href={action.href} className="label-caps mt-5 inline-block hover:opacity-50">
+          {action.label} →
+        </Link>
+      ) : null}
+    </div>
   );
 }

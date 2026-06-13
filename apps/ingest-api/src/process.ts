@@ -41,19 +41,7 @@ export async function processEvents(
     // Always scope to authenticated project (ignore client-sent projectId)
     const scoped = { ...event, projectId };
 
-    await prisma.agentEvent.upsert({
-      where: { id: scoped.id },
-      create: {
-        id: scoped.id,
-        runId: scoped.runId,
-        type: scoped.type,
-        spanId: scoped.spanId ?? null,
-        timestamp: new Date(scoped.timestamp),
-        data: toJson(scoped.data),
-      },
-      update: {},
-    });
-
+    // Create run row before agent events (FK constraint on agent_event.run_id)
     if (scoped.type === "run.started") {
       const data = scoped.data as unknown as RunStartedData;
       await prisma.run.upsert({
@@ -72,6 +60,19 @@ export async function processEvents(
         update: {},
       });
     }
+
+    await prisma.agentEvent.upsert({
+      where: { id: scoped.id },
+      create: {
+        id: scoped.id,
+        runId: scoped.runId,
+        type: scoped.type,
+        spanId: scoped.spanId ?? null,
+        timestamp: new Date(scoped.timestamp),
+        data: toJson(scoped.data),
+      },
+      update: {},
+    });
 
     if (scoped.type === "run.ended") {
       const data = scoped.data as unknown as RunEndedData;

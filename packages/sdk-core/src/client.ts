@@ -80,22 +80,31 @@ export class Rift {
     return getCurrentRun();
   }
 
-  async flush(): Promise<void> {
-    if (this.buffer.length === 0) return;
+  async flush(): Promise<boolean> {
+    if (this.buffer.length === 0) return true;
     const batch = this.buffer.splice(0, this.buffer.length);
     try {
       await sendBatch(this.config, batch);
+      return true;
     } catch (err) {
       this.buffer.unshift(...batch);
-      if (process.env.RIFT_DEBUG) {
-        console.error("[rift] flush failed:", err);
-      }
+      console.error(
+        "[rift] flush failed:",
+        err instanceof Error ? err.message : err,
+      );
+      return false;
     }
   }
 
   async shutdown(): Promise<void> {
     if (this.flushTimer) clearInterval(this.flushTimer);
-    await this.flush();
+    const ok = await this.flush();
+    if (!ok || this.buffer.length > 0) {
+      throw new Error(
+        `Failed to send events to ${this.config.endpoint}. ` +
+          "Start ingest-api (npm run dev) and seed the DB (npm run db:seed).",
+      );
+    }
   }
 
   private enqueue(partial: {
@@ -106,6 +115,7 @@ export class Rift {
   }): void {
     const event: EventEnvelope = {
       version: "1.0",
+      type: partial.type,
       id: `evt_${randomUUID().replace(/-/g, "").slice(0, 16)}`,
       runId: partial.runId,
       projectId: this.config.projectId,

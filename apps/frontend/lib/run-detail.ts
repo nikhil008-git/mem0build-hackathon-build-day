@@ -25,6 +25,7 @@ export interface RunDetail {
     status: string;
     prUrl: string | null;
     analysis: string | null;
+    patch: string | null;
   } | null;
 }
 

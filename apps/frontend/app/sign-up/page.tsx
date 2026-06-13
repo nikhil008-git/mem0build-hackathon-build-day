@@ -1,67 +1,70 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signUp } from "@/lib/auth-client";
+import { AuthShell } from "@/components/layout/auth-shell";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export default function SignUpPage() {
-    const router = useRouter();
-    const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-    async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-        e.preventDefault();
-        setError(null);
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
 
-        const formData = new FormData(e.currentTarget);
+    const formData = new FormData(e.currentTarget);
+    const res = await signUp.email({
+      name: formData.get("name") as string,
+      email: formData.get("email") as string,
+      password: formData.get("password") as string,
+    });
 
-        const res = await signUp.email({
-            name: formData.get("name") as string,
-            email: formData.get("email") as string,
-            password: formData.get("password") as string,
-        });
-
-        if (res.error) {
-            setError(res.error.message || "Something went wrong.");
-        } else {
-            router.push("/dashboard");
-        }
+    setLoading(false);
+    if (res.error) {
+      setError(res.error.message || "Something went wrong.");
+    } else {
+      router.push("/dashboard");
     }
+  }
 
-    return (
-        <main className="max-w-md mx-auto p-6 space-y-4 text-white">
-            <h1 className="text-2xl font-bold">Sign Up</h1>
-            {error && <p className="text-red-500">{error}</p>}
-            <form onSubmit={handleSubmit} className="space-y-4">
-                {" "}
-                <input
-                    name="name"
-                    placeholder="Full Name"
-                    required
-                    className="w-full rounded-md bg-neutral-900 border border-neutral-700 px-3 py-2"
-                />{" "}
-                <input
-                    name="email"
-                    type="email"
-                    placeholder="Email"
-                    required
-                    className="w-full rounded-md bg-neutral-900 border border-neutral-700 px-3 py-2"
-                />{" "}
-                <input
-                    name="password"
-                    type="password"
-                    placeholder="Password"
-                    required
-                    minLength={8}
-                    className="w-full rounded-md bg-neutral-900 border border-neutral-700 px-3 py-2"
-                />{" "}
-                <button
-                    type="submit"
-                    className="w-full bg-white text-black font-medium rounded-md px-4 py-2 hover:bg-gray-200"
-                >
-                    {" "}
-          // [!code ++] Create Account
-                </button>{" "}
-            </form>{" "}
-        </main>
-    );
+  return (
+    <AuthShell
+      title="Create Account"
+      subtitle="Start observing agent runs, failures, and fixes."
+      footer={
+        <>
+          Already have an account?{" "}
+          <Link href="/sign-in" className="text-black hover:underline">
+            Sign in
+          </Link>
+        </>
+      }
+    >
+      {error ? (
+        <p className="mb-4 rounded-sm border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          {error}
+        </p>
+      ) : null}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Input name="name" placeholder="Full name" required />
+        <Input name="email" type="email" placeholder="Email" required />
+        <Input
+          name="password"
+          type="password"
+          placeholder="Password (min 8 characters)"
+          required
+          minLength={8}
+        />
+        <Button type="submit" className="mt-2 w-full" size="lg" disabled={loading}>
+          {loading ? "Creating account..." : "Create account"}
+        </Button>
+      </form>
+    </AuthShell>
+  );
 }

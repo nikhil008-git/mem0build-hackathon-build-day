@@ -11,7 +11,11 @@
     "db:generate": "npm run db:generate -w @repo/db",
     "db:migrate": "npm run db:migrate -w @repo/db",
     "db:deploy": "npm run db:deploy -w @repo/db",
-    "db:seed": "npx tsx packages/database/prisma/seed.ts"
+    "db:seed": "npx tsx packages/database/prisma/seed.ts",
+    "demo": "tsx examples/demo-run.ts",
+    "demo:setup": "npm run db:seed && npm run demo",
+    "hermes:setup": "bash packages/sdk-hermes/setup.sh",
+    "hermes:worker": "bash -c 'if [ -x packages/sdk-hermes/.venv/bin/python ]; then packages/sdk-hermes/.venv/bin/python packages/sdk-hermes/rift_remediation/server.py; else python3 packages/sdk-hermes/rift_remediation/server.py; fi'"
   },
   "devDependencies": {
     "prettier": "^3.7.4",

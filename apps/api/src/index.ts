@@ -4,7 +4,7 @@ import express from "express";
 import cors from "cors";
 import { prisma } from "@repo/db";
 
-config({ path: resolve(import.meta.dirname, "../../.env") });
+config({ path: resolve(import.meta.dirname, "../../../.env") });
 
 const app = express();
 app.use(cors({ origin: "http://localhost:3000" }));
